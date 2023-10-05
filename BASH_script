@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Ensure the script runs as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
+echo "========== SYSTEM SECURITY CHECK =========="
+
+# 1. Check for users without passwords
+echo "[+] Checking for users without passwords..."
+awk -F: '($2 == "" ) { print $1 }' /etc/shadow
+echo "==========================================="
+
+# 2. List all sudoers
+echo "[+] Checking for all sudoers..."
+cat /etc/group | grep sudo
+echo "==========================================="
+
+# 3. Check for world-writable files
+echo "[+] Checking for world-writable files..."
+find / -type f -perm -002 -print 2>/dev/null
+echo "==========================================="
+
+# 4. Check for world-writable directories
+echo "[+] Checking for world-writable directories..."
+find / -type d -perm -002 -print 2>/dev/null
+echo "==========================================="
+
+# 5. Check for no owner files
+echo "[+] Checking for files with no owner..."
+find / -nouser -o -nogroup -print 2>/dev/null
+echo "==========================================="
+
+# 6. Analyze last 100 lines of auth log for failed login attempts
+echo "[+] Checking for failed login attempts..."
+tail -100 /var/log/auth.log | grep "Failed password"
+echo "==========================================="
+
+# 7. Check for SSH root login permissions
+echo "[+] Checking SSH root login status..."
+grep "PermitRootLogin" /etc/ssh/sshd_config | grep -v "#"
+echo "==========================================="
+
+echo "Security check completed!"
+
